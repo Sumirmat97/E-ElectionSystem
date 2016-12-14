@@ -1,0 +1,1682 @@
+#include<fstream.h>
+#include<conio.h>
+#include<stdio.h>
+#include<string.h>
+#include<dos.h>
+#include<iomanip.h>
+#include<process.h>
+#include<graphics.h>
+#include "GRAPHIC.h"  //includes graphics function strtpg()
+
+ //Classes and structures:
+
+  class person           //base class to voter and candidate class
+   {
+     protected:
+     char name[20];
+     char fname[20];
+     char gender[8];
+     char address[30];
+     int  age,status;
+
+
+     public:
+
+     person()            //constructor to class
+     { status=0; }
+
+     void change_status()
+     { status=1; }
+
+     int see_status()
+     { return status; }  //accessor function
+
+     void set_name(char NAME[])
+     { strcpy(name,NAME); }
+
+     char* get_name()    //returns pointer to string name
+     { return name; }
+
+     void set_fname(char FNAME[])
+     { strcpy(fname,FNAME); }
+
+     void set_gen(char GEN[])
+     { strcpy(gender,GEN); }
+
+     char* get_gen()     //returns pointer to string gender
+     { return gender; }
+
+     void set_age(int AGE)
+     { age=AGE; }
+
+     int get_age()
+     { return age; }
+
+     void set_address(char ADDRESS[])
+     { strcpy(address,ADDRESS);  }
+
+     char* get_address()   //returns pointer to string address
+     { return address; }
+  };
+
+  class votr : public person   //inherits from class person
+   {
+     char password[10];
+     long voter_id;
+
+     public:
+
+     void set_pass(char PASS[])
+     { strcpy(password,PASS); }
+
+     char* get_pass()          //returns pointer to string password
+     { return password; }
+
+     void set_id(long  ID)
+     { voter_id = ID;}
+     long  get_id()
+     { return voter_id;}
+
+   }vfile;
+
+
+  class cnddt: public person  //inherits from class person
+   {
+     long assets;
+     char password[10];
+     char party[20];
+     int votes,candidate_id;
+
+     public:
+
+     cnddt()                  //constructor to class
+     {
+       votes=0;
+     }
+
+     void add_votes()
+      { ++votes; }
+
+     int see_votes()
+      { return votes; }
+
+     void set_party(char PARTY[])
+     { strcpy(party,PARTY); }
+
+     char* get_party()   //returns pointer to string party
+     { return party; }
+
+     void set_assets(long ASSETS)
+     { assets=ASSETS; }
+
+     long get_assets()
+     { return assets; }
+
+     void set_id(int ID)
+     { candidate_id=ID; }
+
+     int get_id()
+     { return candidate_id; }
+
+     void set_pass(char PASS[])
+     { strcpy(password,PASS); }
+
+     char* get_pass()
+     { return password; }
+
+
+   }cfile;
+
+    class manifesto_data
+     {
+       long id;
+       char str1[30], str2[30], str3[30];
+
+       public:
+       void set_str(char STRING1[30], char STRING2[30], char STRING3[30])
+	{
+	  strcpy(str1,STRING1);
+	  strcpy(str2,STRING2);
+	  strcpy(str3,STRING3);
+	}
+
+       void get_str1()
+	{ puts(str1); }
+       void get_str2()
+	{ puts(str2); }
+       void get_str3()
+	{ puts(str3); }
+
+       void set_id(int ID)
+	{ id=ID; }
+
+       int get_id()
+	{ return id; }
+
+     } mfile;
+
+
+  struct COUNTER
+   {
+     int ccount;               //counter of candidates registered
+     int vcount;               //counter of voters registered
+     int votecount;            //counter of voters/candidates voted
+     long id_cdt;              //id assisgned to each candidate
+     long id_vtr;              //id assisgned to each voter
+     int register_status;
+     int vote_status;          //check whether voter has voted or not
+     int nota;                 //counter of voting for no candidate
+
+   }COUNT ;
+
+
+
+  //functions
+
+    void initialise();
+    void mainvote(int n);
+    void result();
+    int  basemenu();
+    void votermenu();
+    void candidatemenu();
+    void adminmenu();
+    void manifesto();
+    void newvoter();
+    void newcandidate();
+    void view_candidate();
+    void sys_exit();
+    void modify();
+    void del_candidate();
+    void del_voter();
+    void analysis();
+    void status();
+
+////////////////////////////////////////////////////////////////////////////
+char admin_password[10]="admin";
+
+void main()
+{
+  clrscr();
+
+  strtpg();  //calls function from GRAPHI.h
+
+  int choice,i=0;
+
+  initialise();
+
+  while(i == 0)
+   {
+     choice = basemenu();  //integer returned by basemenu()
+
+     switch(choice)
+      {
+	case 1: votermenu(); break;
+	case 2: candidatemenu(); break;
+	case 3: adminmenu(); break;
+
+	default: gotoxy(32,15);
+		  cout<<" Entered key is not valid";
+		 gotoxy(32,16);
+		  cout<<"Press enter to enter again ";
+		 getch();
+
+		 status();
+     }
+  }
+}
+
+void status()
+{
+   if(COUNT.register_status==1)
+      {
+	gotoxy(3,21);
+	 textattr(2); cout<<"Registration status: "; cprintf("on"); textattr(7);
+	gotoxy(3,22);
+	 textattr(4); cout<<"Voting status: "; cprintf("off"); textattr(7);
+      }
+
+     else
+      {
+	gotoxy(3,21);
+	 textattr(4); cout<<"Registration status: "; cprintf("off"); textattr(7);
+	gotoxy(3,22);
+	 textattr(2); cout<<"Voting status: "; cprintf("on"); textattr(7);
+      }
+}
+
+void initialise()
+{
+    fstream count;
+     count.open("counter",ios::noreplace|ios::out);
+
+    if(count==0)  //if open is successful
+     {
+       count.open("counter",ios::in);
+       count.read((char*)&COUNT,sizeof (COUNT));   //global variables read from file
+     }
+
+    else          //if open fails
+     {
+       COUNT.vcount    =  0;
+       COUNT.ccount    =  0;
+       COUNT.votecount =  0;
+       COUNT.id_cdt = 1001;
+       COUNT.id_vtr = 11001;
+       COUNT.register_status=1;
+       COUNT.vote_status=0;
+       COUNT.nota=0;
+     }
+
+   count.close();
+}
+
+int basemenu()
+{
+    int choice;
+    clrscr();
+    status();
+
+     gotoxy(23,1);
+      cout<<"*** Welcome to e-voting system ***"  ;
+     gotoxy(3,4);
+      cout<<"What are you? "<<endl;
+     gotoxy(3,6);
+      cout<<"Press 1: Voter"<<endl;
+     gotoxy(3,9);
+      cout<<"Press 2: Candidate"<<endl;
+     gotoxy(3,12);
+      cout<<"Press 3: Admin"<<endl;
+
+
+     gotoxy(3,16);
+      cout<<"Enter option: ";
+
+     cin>>choice;
+
+     return choice;
+
+
+}
+
+void votermenu()
+{
+  int choice=0;
+  while(1)            //loops until user chooses to return
+   {
+     clrscr();
+     gotoxy(23,1);
+      cout<<"*** Welcome to e-voting system ***"  ;
+     gotoxy(3,4);
+      cout<<"What are you? "<<endl;
+     gotoxy(5,6);
+      textattr(6); cprintf("Press 1: Voter"); cout<<endl; textattr(7);
+     gotoxy(3,9);
+      cout<<"Press 2: Candidate"<<endl;
+     gotoxy(3,12);
+      cout<<"Press 3: Admin"<<endl;
+     gotoxy(3,16);
+      cout<<"Enter option: "<<'1';
+
+     status();
+
+     gotoxy(32,4);
+      cout<<"What do you want to do? "<<endl;
+
+     gotoxy(32,6);
+      cout<<"Press 1: To add new elector"<<endl;
+      cout<<"\t\t\t\t (Minimum Age: 18 yrs)\n"<<endl;
+
+     gotoxy(32,9);
+      cout<<"Press 2: To modify your regitration form"<<endl;
+
+     gotoxy(32,12);
+      cout<<"Press 3: To view the candidates"<<endl;
+
+     gotoxy(32,15);
+      cout<<"Press 4: To VOTE";
+
+     gotoxy(32,18);
+      cout<<"Press 5: Go back";
+
+
+     gotoxy(32,21);
+      cout<<"Enter option: ";
+
+     cin>>choice;
+
+      switch(choice)
+		    {
+		       case 1 : newvoter();break;
+		       case 2 : modify();break;
+		       case 3 : view_candidate();break;
+		       case 4 : mainvote(1);break;
+		       case 5 : return;
+
+		       default :
+			       gotoxy(32,21);
+				cout<<"Entered key is invalid";
+			       gotoxy(32,22);
+				cout<<"Press enter to enter again ";
+			       getch();
+		    }
+    }
+}
+
+void newvoter()
+{
+   if(COUNT.register_status==1)    //if registration is open
+    {
+      clrscr();
+      char tempstr[30];
+      int tempno;
+
+      gotoxy(23,1);
+       cout<<"*** Voter Enrollment Form ***";
+
+      cout<<"\n\nEnter your details ";
+
+      cout<<"\nName: ";
+       vfile.set_name(gets(tempstr));
+
+      cout<<"\nFather's name: ";
+       vfile.set_fname(gets(tempstr));
+
+      cout<<"\nSex(M/F): ";
+       vfile.set_gen(gets(tempstr));
+
+      cout<<"\nAge: ";
+       cin>>tempno;
+
+      if(tempno<18)
+       {
+	 cout<<"You are underage to vote";
+	 cout<<"\n\nPress enter to return to main menu";
+	 getch();
+	 return;
+       }
+
+       vfile.set_age(tempno);
+
+      cout<<"\nAddress: ";
+       vfile.set_address(gets(tempstr));
+
+      cout<<"\nEnter 5 character password:"<<endl;
+	for(int x=0;;x++)
+	{
+		tempstr[x]=getch();
+		if(tempstr[x]==13)
+		{
+			tempstr[x]='\0';
+			break;
+		}
+		cout<<"*";
+	 }
+
+       vfile.set_pass(tempstr);
+
+      cout<<"\nYour voter id is "<<COUNT.id_vtr;
+       vfile.set_id(COUNT.id_vtr);
+
+      cout<<"\n\nAll details entered!"<<endl;
+
+      ofstream file("voter",ios::binary|ios::app);
+       file.write((char*) &vfile,sizeof(vfile));    //record added to file
+       file.close();
+
+      COUNT.vcount++;    //counters incremented
+      COUNT.id_vtr++;
+
+      cout<<"Press enter to return to main menu";
+      getch();
+    }
+   else                  //if registration is closed
+    {
+      gotoxy(32,22);
+      cout<<"Registration over! Voting started";
+      getch();
+    }
+}
+
+void modify()
+{
+  clrscr();
+
+  if(COUNT.vcount==0)
+   {
+     gotoxy(23,13);
+       cout<<"No voters have registered";
+     gotoxy(24,14);
+       cout<<"Press enter to continue";
+     getch(); return;
+   }
+
+   int id;
+   char choice,password[10];
+   long position;
+   int found=0,check=0;
+
+   if(COUNT.vcount)
+    {
+      cout<<"\n\nEnter your voter id : ";
+       cin>>id;
+
+	 fstream file;
+	 file.open("voter",ios::binary|ios::out|ios::in);
+	 position=file.tellg();    //stores initial position 0
+
+	 while(file.read((char*) &vfile,sizeof(vfile)))
+	  {
+	    if(vfile.get_id()==id)    //id match
+	     {
+	       found=1;
+	       cout<<"Enter password: ";
+
+	       for(int x=0;;x++)
+		 {
+			password[x]=getch();
+			if(password[x]==13)
+			{
+				password[x]='\0';
+				break;
+			}
+			cout<<"*";
+		 }
+
+	       if(!strcmp(password,vfile.get_pass()))  //password match
+		{
+		  cout<<"\nHello, "<<vfile.get_name();
+		  check=1; break;
+		}
+	       else
+		{
+		  cout<<"\nIncorrect password!";
+		  cout<<"\nPress enter to continue";
+		  getch(); return;
+		}
+	     }
+	     position=file.tellg();     //stores position of file ptr before reading next record
+	  }
+
+	  if(found==0)
+	  {
+	     cout<<"\nIncorrect id";
+	     getch(); return;
+	  }
+
+	 if(check==1)                      // all conditions passed
+	  {
+	    int change_choice, localno;
+	    long locallong;
+	    char tempstr[20], ch='y';
+
+	       cout<<"\n\nWhat do you want to change: ";
+	       cout<<"\n1. Name: ";
+		puts( vfile.get_name() );
+	       cout<<"2. Age: ";
+		cout<<vfile.get_age()<<endl;
+	       cout<<"3. Address: ";
+		puts(vfile.get_address());
+	       cout<<"4. Change Password ";
+	       cout<<"\n5. Change nothing";
+
+	       while(ch=='y'||ch=='Y')
+	       {
+		   cout<<"\n\nEnter your choice: ";
+		    cin>>change_choice;
+
+		    switch(change_choice)
+			   {
+				case 1 : cout<<"\nEnter name: ";
+					 vfile.set_name(gets(tempstr));
+					 cout<<"\nDone!!";
+					 break;
+
+				case 2 : cout<<"\nEnter age: ";
+					 cin>>localno;
+					 vfile.set_age(localno);
+					 cout<<"\nDone!!";
+					 break;
+
+			       case 3 : cout<<"\nEnter address: ";
+					vfile.set_address(gets(tempstr));
+					cout<<"\nDone!!";
+					break;
+
+			       case 4 : cout<<"\nEnter new password: ";
+					for(int x=0;;x++)
+					   {
+						tempstr[x]=getch();
+						if(tempstr[x]==13)
+						{
+							tempstr[x]='\0';
+							break;
+						}
+						cout<<"*";
+					    }
+
+					vfile.set_pass(tempstr);
+					cout<<"\nDone!!";
+					break;
+
+			       case 5 : cout<<"\nYou changed nothing!";
+					break;
+
+			       default: cout<<"Wrong choice entered!";
+					cout<<"Enter again";
+			   }
+			   cout<<"Do you want to change more?(y/n): ";
+			   cin>>ch;
+	       }
+			 file.seekg(position);   //goes to positon before record to be modified
+			 file.write((char*) &vfile,sizeof(vfile));
+			 file.close();
+
+	  }
+    }
+
+ getch();
+}
+
+void candidatemenu()
+{
+  int choice=0;
+
+  while(1)                    //loops till  return encountered
+   {
+
+     clrscr();
+
+     gotoxy(23,1);
+      cout<<"*** Welcome to e-voting system ***"  ;
+     gotoxy(3,4);
+      cout<<"What are you? "<<endl;
+     gotoxy(3,6);
+      cout<<"Press 1: Voter"<<endl;
+     gotoxy(5,9);
+      textattr(6); cprintf("Press 2: Candidate"); cout<<endl; textattr(7);
+     gotoxy(3,12);
+      cout<<"Press 3: Admin"<<endl;
+     gotoxy(3,16);
+      cout<<"Enter option: "<<'2';
+
+     status();
+
+     gotoxy(32,4);
+      cout<<"What do you want to do? ";
+
+     gotoxy(32,6);
+      cout<<"Press 1: To add new candidate"<<endl;
+      cout<<"\t\t\t\t (Minimum Age: 25 yrs)\n";
+
+     gotoxy(32,9);
+      cout<<"Press 2: To enter your manifesto";
+
+     gotoxy(32,12);
+      cout<<"Press 3: To VOTE";
+
+     gotoxy(32,15);
+      cout<<"Press 4: Go back";
+
+
+     gotoxy(32,18);
+      cout<<"Enter option: ";
+
+     cin>>choice;
+
+      switch(choice)
+		    {
+		      case 1 : newcandidate();break;
+		      case 2 : manifesto();break;
+		      case 3 : mainvote(2);break;
+		      case 4 : return;
+		     default :
+			       gotoxy(32,18);
+				cout<<" Entered key is to valid";
+			       gotoxy(32,19);
+				cout<<"Press enter to enter again ";
+			       getch();
+		    }
+   }
+}
+
+void newcandidate()
+  {
+    if(COUNT.register_status==1)
+     {
+       clrscr();
+       char localstr[30];
+       long int  localno;
+
+       gotoxy(23,1);
+	cout<<"*** Candidate Enrollment Form ***";
+
+       cout<<"\n\nEnter your details ";
+
+       cout<<"\nName: ";
+	cfile.set_name(gets(localstr));
+
+       cout<<"\nFather's name: ";
+	cfile.set_fname(gets(localstr));
+
+       cout<<"\nSex(M/F): ";
+	cfile.set_gen(gets(localstr));
+
+       cout<<"\nAge: ";
+	cin>>localno;
+
+	if(localno<25)
+	 {
+	   cout<<"You are under age to stand up for elections";
+	   cout<<"\n\nPress enter to return to main menu";
+	   getch();
+	   return;
+	 }
+	cfile.set_age(localno);
+
+       cout<<"\nAddress: ";
+	cfile.set_address(gets(localstr));
+
+       cout<<"\nParty Name: ";
+	cfile.set_party(gets(localstr));
+
+       cout<<"\nAssets in Rs: ";
+	cin>>localno;
+	cfile.set_assets(localno);
+
+       cout<<"\nEnter password: ";
+	for(int x=0;;x++)
+	  {
+		localstr[x]=getch();
+		if(localstr[x]==13)
+		{
+			localstr[x]='\0';
+			break;
+		}
+		cout<<"*";
+	  }
+	cfile.set_pass(localstr);
+
+       cout<<"\nYour candidate id is "<<COUNT.id_cdt;
+	cfile.set_id(COUNT.id_cdt);
+
+       ofstream file("candidate",ios::binary|ios::app);
+       file.write((char*) &cfile,sizeof(cfile));
+	file.close();
+
+       cout<<"\n\nAll details entered!"<<endl;
+
+       COUNT.ccount++;
+       COUNT.id_cdt++;
+
+       cout<<"Press enter to return to main menu";
+	getch();
+     }
+   else
+    {
+      gotoxy(32,23);
+      cout<<"Registration over! Voting started";
+      getch();
+    }
+}
+
+void manifesto()
+{
+    clrscr();
+    if(COUNT.ccount==0)
+    {
+      gotoxy(23,13);
+       cout<<"No candaidates have registered";
+     gotoxy(24,14);
+       cout<<"Press enter to continue";
+
+      getch(); return;
+    }
+
+    int  pos, id, test=0;
+    char STRING1[30], STRING2[30], STRING3[30];
+    char choice, password[10] ;
+
+
+
+    cout<<"\n\nEnter your candidate id : ";
+     cin>>id;
+
+
+   if(id<=COUNT.id_cdt)     //all valid id(s) less than COUNT.id_cdt
+    {
+      ifstream file;
+      file.open("candidate",ios::binary);
+
+       while(file.read((char*) &cfile,sizeof(cfile)))
+       {
+	if(cfile.get_id()==id)
+	 {
+	  cout<<"Enter password: ";
+	  for(int x=0;;x++)
+	  {
+		password[x]=getch();
+		if(password[x]==13)
+		{
+			password[x]='\0';
+			break;
+		}
+		cout<<"*";
+	  }
+
+	  if(!strcmp(password,cfile.get_pass()))
+	  {
+	   cout<<"\nHello, "<<cfile.get_name();
+	   test=1; break;
+	  }
+	  else
+	  { cout<<"\nIncorrect password!";
+	    getch(); return;
+	  }
+	 }
+       }
+      file.close();
+    }
+
+    if(test==1)          //all checks passed
+      {
+	ofstream file2;
+	file2.open("manifesto",ios::app|ios::binary);
+
+	mfile.set_id(id);  //mfile object of class manifesto
+
+       do
+	{
+
+	 cout<<"\nEnter 3 points you want to proceed with :";
+	 cout<<"\n1.";
+	  gets(STRING1);
+	 cout<<"2."  ;
+	  gets(STRING2);
+	 cout<<"3."  ;
+	  gets(STRING3);
+
+	 mfile.set_str(STRING1,STRING2,STRING3);  //passes entered strings as parameters
+
+	 cout<<"Are you sure(y/n)? :";
+	  cin>>choice;
+
+	  if(choice == 'y' || choice == 'Y')
+	   {
+	     file2.write((char*) &mfile, sizeof(mfile));  //record added
+	      file2.close();
+	   }
+	}while(choice == 'n' || choice == 'N');
+      }
+     else
+      {
+       cout<<"\nWrong id entered!";
+       cout<<"\nPress enter to go back to main menu";
+      }
+   getch();
+ }
+
+void view_candidate()
+{
+  clrscr();
+
+   int  flag=0,id;
+   char choice;
+
+   if(COUNT.ccount!=0)
+    {
+
+      ifstream show;
+       show.open("candidate",ios::binary);
+
+      cout<<"\t\t\t*** Know your candidate ***"<<endl;
+      cout<<"\nID. Candidates"<<endl;
+      while(show.read((char*) &cfile,sizeof(cfile)))
+       {
+	 cout<<cfile.get_id()<<"     "<<cfile.get_name();
+	 cout<<endl;
+       }
+      show.close();
+      show.open("candidate",ios::binary);
+
+      ifstream viewman;
+      viewman.open("manifesto",ios::binary);
+
+    do
+     {
+	flag=0;
+
+	cout<<"\nEnter the candidate's ID you want to view: ";
+	cin>>id;
+
+	show.seekg(0);
+
+	while(show.read((char*) &cfile,sizeof(cfile)))
+	 {
+	  if(id==cfile.get_id())
+	   {
+	     flag = 1;
+	     cout<<"\nName: ";
+	      puts( cfile.get_name() );
+	     cout<<"\nSex(M/F): ";
+	      puts( cfile.get_gen() );
+	     cout<<"\nAge: ";
+	      cout<<cfile.get_age()<<endl;
+	     cout<<"\nParty Name: ";
+	      puts( cfile.get_party() );
+
+	     while(viewman.read((char*)&mfile,sizeof(mfile)))
+	      {
+		if(id == mfile.get_id())
+		 {
+		   cout<<"\nCandidate's manifesto :";
+		   cout<<"\n1.";
+		   mfile.get_str1();
+		   cout<<"\n2.";
+		   mfile.get_str2();
+		   cout<<"\n3.";
+		   mfile.get_str3();
+		   break;
+		 }
+	      }
+	    break;
+	   }
+	 }
+
+      if(flag == 0)
+       {
+	cout<<"\nRequested person not found ";
+	cout<<"\nPress enter to continue ";
+	show.close();
+	getch();
+       }
+
+
+       cout<<"\nDo you want to see more?(y/n): ";
+	cin>>choice;
+
+	if(choice == 'y' || choice =='Y' && flag==0)
+	{
+	  show.open("candidate",ios::binary);
+	}
+
+     } while(choice == 'y' || choice == 'Y');
+
+
+      show.close();
+      viewman.close();
+    }
+
+   else
+    {
+      gotoxy(23,13);
+       cout<<"No candidate has filed nomination yet";
+      gotoxy(29,14);
+       cout<<"Press enter to continue";
+    }
+
+  getch();
+}
+
+void mainvote(int n)
+{
+   if(COUNT.register_status==0)
+    {
+      clrscr();
+      int chvote,id,found=0,canvote=0;
+      char passcheck[10];
+      long position;
+
+       gotoxy(23,1);
+	cout<<"*** Welcome to polling booth ***";
+
+	if(n==1)  // 1 for voter, passed as parameter
+	 {
+	   cout<<"\n\nEnter your voter id: ";
+	    cin>>id;
+
+	   fstream files;
+	    files.open("voter",ios::in|ios::out|ios::binary);
+
+	   while(!files.eof())
+	   {
+	    position=files.tellg();    //stores last position of last record read
+	    files.read((char*) &vfile,sizeof(vfile));
+
+	    if(id==vfile.get_id())
+	    {
+	      found=1;
+	      cout<<"\nEnter password: ";
+	      for(int x=0;;x++)
+		{
+			passcheck[x]=getch();
+			if(passcheck[x]==13)
+			{
+				passcheck[x]='\0';
+				break;
+			}
+			cout<<"*";
+		}
+
+	      if(!strcmp(vfile.get_pass(),passcheck))
+	      {
+	       cout<<"\nHello, "<<vfile.get_name();
+	       break;
+	      }
+	      else
+	      {
+	      cout<<"\nWrong password entered!";
+	      cout<<"\nPress enter to go back to main menu";
+	      files.close(); getch(); return;
+	      }
+	    }
+	   }
+	   if(found==0)
+	   {
+	    cout<<"Voter not found!";
+	    files.close(); getch(); return;
+	   }
+
+	  if(vfile.see_status()==0)
+	   {
+	     canvote=1;
+	     vfile.change_status();   //modifies voting status
+	     files.seekg(position);                    //modifies record
+	     files.write((char*)&vfile,sizeof(vfile)); //
+	     files.close();
+	   }
+	  else
+	   { cout<<"/nYou've already voted!"; getch();
+	     files.close(); return;
+	   }
+	 }
+
+	 else if(n==2)
+	 {
+	   cout<<"\n\nEnter your candidate id: ";
+	   cin>>id;
+
+	   fstream files;
+	   files.open("candidate",ios::in|ios::out|ios::binary);
+
+	   while(!files.eof())
+	   {
+	     position = files.tellg();
+	     files.read((char*) &cfile,sizeof(cfile));
+
+	    if(id==cfile.get_id())
+	    {
+	      found=1;
+	      cout<<"\nEnter password: ";
+	       for(int x=0;;x++)
+		 {
+			passcheck[x]=getch();
+			if(passcheck[x]==13)
+			{
+				passcheck[x]='\0';
+				break;
+			}
+			cout<<"*";
+		 }
+	      if(!strcmp(cfile.get_pass(),passcheck))
+	      {
+	       cout<<"\nHello, "<<cfile.get_name();
+	       break;
+	      }
+	      else
+	      {
+		cout<<"\nWrong password entered!";
+		cout<<"\nPress enter to go back to main menu";
+		files.close();
+		getch();
+		return;
+	      }
+	    }
+	   }
+	  if(found==0)
+	   {
+	     cout<<"Candidate not found!";
+	     getch(); files.close(); return;;
+	   }
+	  if(cfile.see_status()==0)
+	   {
+	     canvote=1;
+	     cfile.change_status();
+	     files.seekg(position);
+	     files.write((char*)&cfile,sizeof(cfile));
+	     files.close();
+	   }
+	  else
+	   {
+	     cout<<"You've already voted!"; getch();
+	     files.close(); return;
+	   }
+	 }
+
+	 if(canvote==1)                           //all checks passed
+	 {
+	   cout<<"\n\t List of candidates";
+	   fstream file;
+	   file.open("candidate",ios::in|ios::out|ios::binary);
+
+	    cout<<"\nSNo.    Candidates    Party\n";
+	    while(file.read((char*) &cfile,sizeof(cfile)))
+		 {
+		   cout<<cfile.get_id()<<"     "<<cfile.get_name()<<"  "<<cfile.get_party();
+		   cout<<endl;
+		 }
+	   file.close();
+
+	   cout<<COUNT.id_cdt<<"     None of the above (NOTA)";
+	   cout<<"\n\n\tPress candidate's ID. you prefer to vote: ";
+
+	   fstream file1;
+	   file1.open("candidate",ios::in|ios::out|ios::binary);
+
+	   votenow:
+
+	       cin>>chvote;
+
+	       if(chvote>=1001 && chvote<COUNT.id_cdt)
+		{
+		  while(!file1.eof())
+		   {
+		     position = file1.tellg();  //stores initial file pointer
+
+		     file1.read((char*) &cfile,sizeof(cfile));
+		      if(cfile.get_id()==chvote)
+		       {
+			 cfile.add_votes();                         // modified records with updated votes
+			 file1.seekg(position);                     //
+
+			 file1.write((char*) &cfile, sizeof(cfile)); //
+
+
+			 getch();
+
+			 file1.close();
+			 break;
+		       }
+		   }
+		}
+
+	       else if(chvote==COUNT.id_cdt)
+		{
+		  cout<<"\n\n\tYou voted no one";
+		  COUNT.nota++;
+		}
+
+	       else
+		{
+		  cprintf("You have entered wrong choice ");
+		  cprintf("\nEnter your choice again ");
+		  goto votenow;
+		}
+
+	       COUNT.votecount++;
+	       cout<<"\n\n\tVoting successful!!\t";
+	       cout<<"\nPress enter to continue";
+
+	 }
+  getch();
+
+ }
+
+  else
+   {
+     clrscr();
+     gotoxy(23,13);
+       cout<<"Registration open! Voting not started";
+     gotoxy(29,14);
+       cout<<"Press enter to continue";
+
+     getch();
+   }
+
+}
+
+void del_voter()
+{
+  clrscr();
+
+  if(COUNT.vcount==0)
+  {
+    gotoxy(25,14);
+     cout<<"No voters have registered!";
+    gotoxy(25,15);
+     cout<<"Press enter to continue";
+    getch();
+    return;
+  }
+
+  int id,found=0,check=0;
+  char password[10], choice;
+  long position;
+
+   cout<<"\n\nEnter voter id : ";
+   cin>>id;
+
+   fstream del;
+   del.open("voter",ios::in|ios::binary);
+
+   while(del.read((char*) &vfile,sizeof(vfile)))
+    {
+      if(id==vfile.get_id())
+       {
+	 found=1;
+	 cout<<"\nEnter password: ";
+	 for(int x=0;;x++)
+	  {
+		password[x]=getch();
+		if(password[x]==13)
+		{
+			password[x]='\0';
+			break;
+		}
+		cout<<"*";
+	  }
+
+	 if(!strcmp(vfile.get_pass(),password))
+	  {
+	   check=1; break;
+	  }
+	 else
+	  {
+		cout<<"\nWrong password entered!";
+	    cout<<"\nPress enter to go back to main menu";
+	    del.close(); getch(); return;
+	  }
+       }
+    }
+
+   if(check==1)
+    {
+      cout<<"\nAre you sure you want to remove "<<vfile.get_name()<<" from the voter list(y/n)?: ";
+      cin>>choice;
+
+      if(choice =='y'|| choice == 'Y')
+       {
+	 del.seekg(0);
+	 ofstream del1;
+	 del1.open("temp1",ios::binary);
+
+	 while(del.read((char*)& vfile, sizeof(vfile)))
+	  {
+	    if(vfile.get_id()!=id)
+	     {
+	     del1.write((char*)&vfile,sizeof(vfile));
+	     }
+	  }
+
+	 cout<<"\nVoter removed";
+	  COUNT.vcount--;
+
+	  del1.close();
+       }
+      else
+       { cout<<"Not removed"; }
+
+    }
+
+   else if(found==0)
+    {
+      cout<<"Invalid Id";
+      cout<<"\nPress enter to continue";
+    }
+
+   del.close();
+
+   if(check==1)
+    {
+      remove("voter");
+      rename("temp1","voter");
+    }
+
+ getch();
+}
+
+void del_candidate()
+{
+  clrscr();
+
+  if(COUNT.ccount==0)
+  {
+    gotoxy(25,14);
+     cout<<"No candidates have registered!";
+    gotoxy(25,15);
+     cout<<"Press enter to continue";
+
+    getch();
+    return;
+  }
+
+  int id,found=0,check=0;
+  char password[10], choice;
+  long position;
+
+   cout<<"\n\nEnter candidate id : ";
+   cin>>id;
+
+   fstream del;
+   del.open("candidate",ios::in|ios::binary);
+
+   while(del.read((char*) &cfile,sizeof(cfile)))
+    {
+      if(id==cfile.get_id())
+       {
+	 found=1;
+	 cout<<"\nEnter password: ";
+	for(int x=0;;x++)
+	{
+		password[x]=getch();
+		if(password[x]==13)
+		{
+			password[x]='\0';
+			break;
+		}
+		cout<<"*";
+	}
+
+	 if(!strcmp(cfile.get_pass(),password))
+	  {
+	    check=1; break;
+	  }
+	 else
+	  {
+	    cout<<"\nWrong password entered!";
+	    cout<<"\nPress enter to go back to main menu";
+	    del.close(); getch(); return;
+	  }
+       }
+    }
+
+   if(check==1)
+    {
+      cout<<"\nAre you sure you want to remove "<<cfile.get_name()<<" from the candidate list(y/n)?: ";
+      cin>>choice;
+
+      if(choice =='y'|| choice == 'Y')
+       {
+	 del.seekg(0);
+	 ofstream del1;
+	 del1.open("temp1",ios::binary);
+
+	 while(del.read((char*)& cfile, sizeof(cfile)))
+	  {
+	    if(cfile.get_id()!=id)
+	     {
+	     del1.write((char*)&cfile,sizeof(cfile));
+	     }
+	  }
+
+	 cout<<"\nCandidate removed";
+	  COUNT.ccount--;
+
+	  del1.close();
+       }
+      else
+       { cout<<"Not removed"; }
+
+    }
+
+   else if(found==0)
+    {
+      cout<<"Invalid Id";
+      cout<<"\nPress enter to continue";
+    }
+
+   del.close();
+
+   if(check==1)
+    {
+      remove("candidate");
+      rename("temp1","candidate");
+    }
+
+ getch();
+}
+
+void result()
+{
+  clrscr();
+  int big;
+
+  if(COUNT.votecount==0)
+  {
+    gotoxy(24,14);
+    cout<<"No one has currently voted";
+    getch(); return;
+  }
+
+  int gd=DETECT,gm;    // gd: used to automatically detect graphics driver & VDU
+		       // gm: used to obtain screen mode eg: resolution,color,etc.
+
+
+   initgraph(&gd,&gm,"..\\bgi");  //Graphics initialised
+
+
+    int midx, midy;
+
+    midx = getmaxx() / 2;     //coordinates for center of screen
+    midy = getmaxy() / 2;
+
+  ifstream files("candidate",ios::binary);
+
+    setcolor(RED);
+    settextstyle(1,0,4);     //1 - font, 0 - direction(horizontal), 4 - size
+    outtextxy(midx-140,midy-40,"Winner(s) ");  //(x,y,text)
+
+    delay(1000);             //defined in dos.h
+    outtextxy(midx+20,midy-40,"is/are ");
+    delay(1000);
+    setcolor(GREEN);
+
+    files.read((char*) &cfile,sizeof(cfile));
+    big = cfile.see_votes();        //saves 1st candudates' votes as big
+    getch();
+
+    int l=40;               //used for positioning
+    outtextxy(midx-50,midy+l,cfile.get_name());
+
+   while(files.read((char*) &cfile,sizeof(cfile)))
+   {
+    if(big==cfile.see_votes())
+     {
+       l+=30;
+       outtextxy(midx-50,midy+l,cfile.get_name());
+     }
+    else if(big<cfile.see_votes())  //if greater votes, then clears screen
+     {
+       cleardevice();
+
+	setcolor(RED);
+	settextstyle(1,0,4);  //1 - font, 0 - direction(horizontal), 4 - size
+	outtextxy(midx-140,midy-40,"Winner(s) ");
+
+	outtextxy(midx+20,midy-40,"is/are ");
+	setcolor(GREEN);
+
+       l=40;
+       outtextxy(midx-50,midy+l,cfile.get_name());
+       big=cfile.see_votes();
+     }
+    }
+    files.close();
+
+    getch();
+    closegraph();            //ends graphics
+
+    analysis();
+}
+
+void analysis()
+{
+    int gd=DETECT,gm;
+    initgraph(&gd,&gm,"..\\bgi");  // Graphics initialised
+
+    int midx, midy;
+
+    midx = getmaxx() / 2; //coordinates for center of screen
+    midy = getmaxy() / 2;
+
+    textattr(7);
+    setcolor(WHITE);
+    int clr=1;
+
+    float sangle=0, eangle=0;  // sangle: starting angle & eangle: end angle
+
+
+    setfillstyle(CLOSE_DOT_FILL,7);       //(fillstyle,colour:7(white))
+    pieslice(midx-150,midy+5,0,360,100);  //(x,y,sangle,eangle,radius)
+
+    ifstream  cobj("candidate", ios :: binary);
+    int count=0,votes;
+
+    while(count<COUNT.ccount)
+     {
+       cobj.read((char*)&cfile, sizeof(cfile));
+
+       votes=cfile.see_votes();
+
+       eangle = eangle + ((float)votes/(COUNT.vcount+COUNT.ccount))*360;
+					  //end angle modified each time
+       setfillstyle(SOLID_FILL,clr);
+       pieslice(midx-150,midy+5,sangle,eangle,100);
+       sangle=eangle;                     //new starting angle=last end  angle
+
+       clr++;                            //changes colour for next slice
+       count++;
+
+     }
+    cobj.close();
+
+    eangle = eangle+((float)COUNT.nota/((float)COUNT.vcount+COUNT.ccount))*360;
+    setfillstyle(SOLID_FILL,14);
+    pieslice(midx-150,midy+5,sangle,eangle,100);   //slice for nota
+
+    setcolor(WHITE);
+    settextstyle(1,0,2);
+    outtextxy(midx-245,midy+110,"Vote Distribution");
+
+    setcolor(12);
+    settextstyle(1,0,2);
+    outtextxy(midx+60,1,"Legend:");
+
+    int ma=40;
+
+    ifstream coj("candidate", ios::binary);
+
+    count=0;
+    clr=1;
+
+    while(count<COUNT.ccount)
+     {
+       coj.read((char*)&cfile,sizeof(cfile));
+
+       votes=cfile.see_votes();
+
+       if(votes!=0)
+	{
+	  setcolor(clr);
+	  settextstyle(1,0,1);
+	  outtextxy(midx+70,ma,cfile.get_name());
+	  ma=ma+20;
+
+	}
+
+	clr++;
+	count++;
+    }
+
+    coj.close();
+
+    ma=ma+70;
+
+    setcolor(WHITE);
+    settextstyle(1,0,2);
+    outtextxy(midx+60,ma+40,"Candidates with 0 votes:");
+
+    ma=ma+80;
+    count=0;
+
+    ifstream canj("candidate",ios::binary);
+
+    while(count<COUNT.ccount)
+    {
+      canj.read((char*)&cfile, sizeof(cfile));
+      votes=cfile.see_votes();
+
+      if(votes==0)
+       {
+	 settextstyle(1,0,1);
+	 outtextxy(midx+70,ma,cfile.get_name());
+
+	 ma=ma+20;
+       }
+      count++;
+    }
+
+
+   if(COUNT.nota)
+    {
+      setcolor(14);
+      settextstyle(1,0,2);
+      outtextxy(midx,ma+150,"No. of people who opted NOTA ");
+    }
+
+    textattr(7);
+
+    getch();
+    cleardevice();
+    closegraph();   // closes graphics
+}
+
+
+void adminmenu()
+{
+   gotoxy(3,18);
+   cout<<"Enter password: ";
+   char password[10];
+   for(int x=0;;x++)
+   {
+	password[x]=getch();
+	if(password[x]==13)
+	{
+		password[x]='\0';
+		break;
+	}
+	cout<<"*";
+   }
+
+   if(strcmp(admin_password,password)==0)
+    {
+      int i=0, choice=0;
+
+      while(i == 0)
+       {
+
+	 clrscr();
+
+	 gotoxy(23,1);
+	  cout<<"*** Welcome to e-voting system ***"  ;
+	 gotoxy(3,4);
+	  cout<<"What are you? "<<endl;
+	 gotoxy(3,6);
+	  cout<<"Press 1: Voter"<<endl;
+	 gotoxy(3,9);
+	  cout<<"Press 2: Candidate"<<endl;
+	 gotoxy(5,12);
+	  textattr(6); cprintf("Press 3: Admin"); cout<<endl; textattr(7);
+	 gotoxy(3,16);
+	  cout<<"Enter option: "<<'3';
+
+	 gotoxy(32,4);
+	  cout<<"What do you want to do? ";
+
+	 gotoxy(32,6);
+	  cout<<"Press 1: To change registration status"<<endl;
+
+	 gotoxy(32,9);
+	  cout<<"Press 2: To display result"<<endl;
+
+	 gotoxy(32,12);
+	  cout<<"Press 3: To close the system";
+
+	 gotoxy(32,15);
+	  cout<<"Press 4: To delete voter";
+
+	 gotoxy(32,18);
+	  cout<<"Press 5: To delete candidate";
+
+	 gotoxy(32,21);
+	  cout<<"Press 6: Go back";
+
+	  if(COUNT.register_status==1)
+	   {
+	     gotoxy(3,21);
+	      textattr(2); cout<<"Registration status: "; cprintf("on"); textattr(7);
+	     gotoxy(3,22);
+	      textattr(4); cout<<"Voting status: "; cprintf("off"); textattr(7);
+	   }
+
+	  else
+	   {
+	     gotoxy(3,21);
+	      textattr(4); cout<<"Registration status: "; cprintf("off"); textattr(7);
+	     gotoxy(3,22);
+	      textattr(2); cout<<"Voting status: "; cprintf("on"); textattr(7);
+	   }
+
+	 gotoxy(32,24);
+	  cout<<"Enter option: ";
+
+	  cin>>choice;
+
+	 switch(choice)
+		      {
+			case 1: if(COUNT.register_status==1)
+				 {
+				   COUNT.register_status=0;
+				   COUNT.vote_status=1;
+				   gotoxy(3,21);
+				   textattr(4);
+				      cout<<"Registration status: ";
+				      cprintf("off");
+				   textattr(7);
+				   gotoxy(3,22);
+				   textattr(2);
+				      cout<<"Voting status: ";
+				      cprintf("on ");
+				   textattr(7);
+				   getch();
+				   break;
+				 }
+
+				else if(COUNT.register_status==0)
+				 {
+				   COUNT.register_status=1;
+				   COUNT.vote_status=0;
+				   gotoxy(3,21);
+				   textattr(2);
+				      cout<<"Registration status: ";
+				      cprintf("on ");
+				   textattr(7);
+				   gotoxy(3,22);
+				   textattr(4);
+				      cout<<"Voting status: ";
+				      cprintf("off");
+				   textattr(7);
+				   getch();
+				   break;
+				 }
+
+			case 2 :  result();break;
+			case 3 :  sys_exit();break;
+			case 4 :  del_voter();break;
+			case 5 :  del_candidate();break;
+			case 6 :  return;
+		       default :
+				 gotoxy(32,23);
+				  cout<<" Entered key is invalid";
+				 gotoxy(32,24);
+				  cout<<"Press enter to enter again ";
+				 getch();
+		      }
+
+       }
+    }
+
+   else
+   { gotoxy(3,19); cout<<"Incorrect password!"; getch(); return; }
+}
+
+void sys_exit()
+{
+  ofstream count;
+  count.open("counter",ios::out);
+  count.write((char*)&COUNT,sizeof(COUNT));
+  count.close();
+  getch();
+
+  exit(0);
+
+}
