@@ -1,4 +1,4 @@
-# README #
+# E-Election System #
 
 ### What is this repository for? ###
 
@@ -17,6 +17,7 @@
   run the file vote2.cpp using turbo c 
 
 * Deployment instructions
+same as test
    
 ### Who do I talk to? ###
 
