@@ -20,16 +20,16 @@
 ### How do I set up? ###
 
 * Summary of set up
-  Clone the repository in your bin folder of turboc 
+  * Clone the repository in your bin folder of turboc 
  
 * Configuration
-  Put the GRAPIC.H file in your BIN folder 
+  * Put the GRAPIC.H file in your BIN folder 
 
 * How to run tests
-  run the file vote2.cpp using turbo c 
+  * Run the file vote2.cpp using turbo c 
 
 * Deployment instructions
-  same as test
+  * Same as test
    
 ### Who do I talk to? ###
 
